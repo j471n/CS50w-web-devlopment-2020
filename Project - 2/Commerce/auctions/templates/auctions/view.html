@@ -1,0 +1,92 @@
+{% extends "auctions/layout.html" %}
+{% block body%}
+<div class="view-main-wrapper">
+    {% if message %}
+        <p>{{ message }}</p>
+    {% endif %}
+    <div class="view-img-wrapper">
+        {% if user.is_authenticated %}
+            <form class="bid-form" action="{% url 'watchlist' %}" method="POST">
+                {% csrf_token %}
+                {{ watchlistForm }}
+                {% if onWatchlist%}
+                    <button class="view-watchlist-button" type="submit" value="Remove from Watchlist"><i class="fas fa-heart"></i></button>
+                {% else %}
+                    <button class="view-watchlist-button" type="submit" value="Add to Watchlist"><i class="far fa-heart"></i></button>
+                {% endif %}
+            </form>
+        {% endif%}
+        {% if auction.picture %}
+            <img class="view-img" src="{{auction.picture}}" alt="Picture of {{auction}}">
+        {% else %}
+            <img class="view-img" src="https://upload.wikimedia.org/wikipedia/en/6/60/No_Picture.jpg" alt="No picture available for listing {{auction.name}}">
+        {% endif %}
+    </div>
+    <div class="view-info-wrapper">
+        <p class="view-auction-name">{{auction.name}}</p>
+        {% if bids.current_bid %}
+            <p class="view-price">${{bids.current_bid}}</p>
+        {% else %}
+            <p class="view-price">${{auction.starting_bid}}</p>
+        {% endif %} 
+        <p class="view-created">Listed on: {{ auction.created_on|date:'Y-m-d' }} by {{ auction.created_by }}</p>
+
+        <!-- if closed -->
+        {% if auction.closed == True %}
+            <p>This Listing is closed</p>
+            {% if user == bids.cur_bidder %}
+                <p>You won the listing</p>
+            {% elif not bids.cur_bidder and auction.created_by == user %}
+                <p>No one bid on this listing</p>
+            {% endif %}
+
+        <!-- if open -->
+        {% else %}
+            <!-- only show this information if user is logged in -->
+            {% if user.is_authenticated %} 
+                <!-- check if auction is created by user -->
+                {% if user == auction.created_by %}
+                    <form class="bid-form" action="{% url 'close' auction.id %}" method="POST">
+                        {% csrf_token %}
+                        <input class="bid-form-submit" type="submit" value="Close Bid">
+                    </form>
+                {% else %} 
+                <!-- see if user is current bidder -->
+                    {% if user.id == bids.cur_bidder.id %}
+                        <p>{{bids.count}} Bid(s) so far. You are the current bidder</p>
+                    {% else %}
+                        <form class="bid-form" action="{% url 'view' auction.id %}" method="POST">
+                            {% csrf_token %}
+                            {{ bidForm }}
+                            <input class="bid-form-submit" type="submit" value="Place Bid">
+                        </form>
+                        <p>{{bids.count}} Bid(s) so far</p>
+                    {% endif %}
+                {% endif %}
+            {% endif %}
+        {% endif %}  
+        <p class="view-description-title">Description</p>
+        <p class="view-description">{{ auction.description}}</p>
+        <p class="view-description-title">Category</p>
+        <p class="view-description">{{ auction.category}}</p>
+    </div>
+    <div class="view-comments-wrapper">
+        {% if user.is_authenticated %}
+            <form class="view-comments-form" action="{% url 'comment' %}" method="POST">
+                {% csrf_token %}
+                {{ commentForm }}
+                <input class="comment-submit" type="submit" value="Post">
+            </form>
+        {% endif %}
+        <div class="view-comments-list">        
+            <h3>Comments:</h3>
+            {% for comment in comments %}
+                <p class="view-comment">{{ comment.text }}</p>
+                <p class="view-created">By {{ comment.user }} on {{ comment.created_on}}</p>
+            {% empty %}
+                <p>No comments so far.</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
